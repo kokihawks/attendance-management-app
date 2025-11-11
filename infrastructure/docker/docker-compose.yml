@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ../../apps/frontend
+      dockerfile: Dockerfile
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    command: npm run start:dev
+    ports:
+      - "4000:4000"
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=app_user
+      - MYSQL_PASSWORD=app_password
+      - MYSQL_DB=app_db
+      - MONGO_URI=mongodb://mongo:27017/app_db
+    depends_on:
+      - mysql
+      - mongo
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=local_root_password
+      - MYSQL_DATABASE=app_db
+      - MYSQL_USER=app_user
+      - MYSQL_PASSWORD=app_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ../mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
