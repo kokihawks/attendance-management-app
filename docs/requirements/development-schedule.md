@@ -23,7 +23,7 @@
 2. **要件ドキュメント整備**
    - [x] ユーザーペルソナとユースケースの詳細化（4つのロール: 管理者/チーム管理者/社員/パートナー）
    - [x] 機能/非機能要件の優先順位付け（FR-001〜FR-008、NFR-001〜NFR-006）
-   - [ ] 受入基準 (Acceptance Criteria) の策定
+   - [x] 受入基準 (Acceptance Criteria) の策定（[受け入れ基準](./acceptance-criteria.md) を参照）
    - [x] リスク・課題一覧の更新
    - [x] 技術スタックの確定（Next.js、Nest.js、MySQL、MongoDB、CloudFront、EventBridge、Lambda、IaC）
    - [x] デプロイ方針の確定（CloudFront、GitHub Actions、統合デプロイ）

@@ -41,7 +41,7 @@
 - **バックエンド**: Nest.js, TypeScript
 - **データベース**: MySQL 8.0, MongoDB 6.0
 - **キャッシュ/キュー**: Redis
-- **認証**: Azure AD (OpenID Connect)
+- **認証**: Google OAuth2 (ユーザー認証)、Microsoft Graph API (Outlook Calendar連携用)
 - **コンテナ**: Docker, Docker Compose
 - **CI/CD**: GitHub Actions (予定)
 
@@ -172,9 +172,10 @@ Controller → Service → Repository → Database
 ## 6. 認証・認可設計
 
 ### 6.1 認証フロー
-1. **Azure AD 連携**: OpenID Connect で SSO 認証
+1. **Google OAuth2 連携**: ユーザー認証用に Google OAuth2 を使用
 2. **JWT 発行**: 認証成功後、Nest.js 側で JWT を発行（リフレッシュトークンも併用）
 3. **セッション管理**: Redis にセッション情報をキャッシュ（オプション）
+4. **Microsoft Graph API 認証**: Outlook Calendar連携用に、ユーザーがMicrosoftアカウントで別途認証し、アクセストークンを取得・保存
 
 ### 6.2 認可（RBAC）
 - **ロール定義**: 
@@ -186,20 +187,37 @@ Controller → Service → Repository → Database
 - **リソースベース認可**: 自分の日報のみ編集可能など、リソース所有者チェックも実装
 
 ### 6.3 セキュリティ対策
-- **パスワードポリシー**: Azure AD 側で管理（アプリ側では直接扱わない）
+- **認証プロバイダー**: Google OAuth2 で認証（パスワード管理不要）
 - **CSRF 対策**: SameSite Cookie、CSRF トークン検証
 - **Rate Limiting**: `@nestjs/throttler` で API 呼び出し制限
+- **トークン管理**: Microsoft Graph API のアクセストークンは安全に保存し、リフレッシュトークンで自動更新
 
 ## 7. 外部連携設計（Outlook）
 
 ### 7.1 Outlook Graph API 連携
-- **認証**: Azure AD アプリ登録で Graph API 権限を取得
+- **認証**: ユーザーがMicrosoftアカウント（会社のアカウント）で別途認証し、Microsoft Graph APIのアクセストークンを取得。トークンはアプリに保存し、リフレッシュトークンで自動更新
+- **認証フロー**: 
+  1. ユーザーがアプリ内で「Outlook Calendar連携を設定」を選択
+  2. Microsoftアカウントで認証（OAuth2）
+  3. Microsoft Graph APIのアクセストークンを取得・保存
+  4. 以降、保存されたトークンでGraph APIを使用
 - **同期方式**: 
-  - **初回同期**: バックエンド起動時またはユーザー初回ログイン時に全件取得
+  - **初回同期**: ユーザーがOutlook Calendar連携を設定した際に全件取得
   - **増分同期**: Webhook または定期的なポーリングで変更を検知
 - **データキャッシュ**: MySQL にスケジュール情報をキャッシュし、Graph API 呼び出しを最小化
 
-### 7.2 エラーハンドリング
+### 7.2 SharePoint連携
+- **認証**: Outlook Calendar連携と同じく、ユーザーがMicrosoftアカウント（会社のアカウント）で別途認証し、Microsoft Graph APIのアクセストークンを取得。トークンはアプリに保存し、リフレッシュトークンで自動更新
+- **機能**: 
+  - 勤務表をExcel形式で出力
+  - スケジュール（月次等）に従って指定されたTeamsフォルダ（SharePoint）に自動アップロード
+  - ユーザーが保存先（Teamsフォルダパス）を設定可能
+- **実装**: 
+  - Microsoft Graph APIを使用してSharePointにアクセス（Azure ADアプリ登録不要）
+  - AWS EventBridge + Lambda または BullMQ + Redis でスケジュール実行
+  - 月次トリガーで自動実行
+
+### 7.3 エラーハンドリング
 - **リトライロジック**: 一時的な API エラーは指数バックオフでリトライ
 - **フォールバック**: Graph API が利用不可の場合、キャッシュデータを返却
 
@@ -208,11 +226,13 @@ Controller → Service → Repository → Database
 ### 8.1 AWS EventBridge + Lambda（サーバーレス処理）
 - **用途**: 
   - 勤務表の自動出力（月次、休日登録完了時）
+  - 勤務表のSharePointへの自動アップロード（スケジュール実行、月次等）
   - 日報未提出催促通知（18:00と翌日9:30の定期実行）
   - スケジュールベースの定期処理
 - **実装方針**:
   - EventBridge でスケジュールイベント（月次トリガー、日次トリガー）やカスタムイベント（休日登録完了）を発行
   - Lambda 関数で勤務表の集計・Excel 生成・S3/SharePoint アップロードを実行
+  - Lambda 関数でSharePointへの自動アップロードをスケジュール実行（月次トリガー等）
   - Lambda 関数で日報未提出検知・通知送信を実行（通知設定を参照し、OFFの場合は送信をスキップ）
   - Nest.js から EventBridge にイベントを送信（AWS SDK 利用）
 - **開発・管理方針**:
