@@ -6,6 +6,7 @@
 
 - [プロダクト要件定義書](./product-requirements.md) - 機能要件、非機能要件、データ項目
 - [プロダクトバックログ](./product-backlog.md) - エピック・ユーザーストーリー、優先順位、見積り
+- [GitHub Projects設定ガイド](./github-projects-setup.md) - GitHub Projectsでのバックログ管理設定手順
 - [開発スケジュール](./development-schedule.md) - 開発フェーズ、マイルストーン、タスク一覧
 - [個人利用フェーズでの成功指標](./success-indicators.md) - 個人利用フェーズでの成功指標と測定方法
 - [受け入れ基準](./acceptance-criteria.md) - 各機能要件の受け入れ基準（Given-When-Then形式）

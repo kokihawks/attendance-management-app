@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: プロダクトバックログ
+    url: https://github.com/[OWNER]/[REPO]/blob/main/docs/requirements/product-backlog.md
+    about: プロダクトバックログの確認
+  - name: GitHub Projects設定ガイド
+    url: https://github.com/[OWNER]/[REPO]/blob/main/docs/requirements/github-projects-setup.md
+    about: GitHub Projectsの設定方法
+
