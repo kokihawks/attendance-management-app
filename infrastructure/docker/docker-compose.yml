@@ -1,53 +1,108 @@
 version: "3.9"
 
+x-backend-env: &backend-env
+  MYSQL_HOST: mysql
+  MYSQL_PORT: 3306
+  MYSQL_USER: app_user
+  MYSQL_PASSWORD: app_password
+  MYSQL_DATABASE: attendance
+  MONGO_URI: mongodb://mongo:27017/attendance
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+
 services:
   frontend:
     build:
       context: ../../apps/frontend
       dockerfile: Dockerfile
-    command: npm run dev
+    command: pnpm dev --host 0.0.0.0 --port 3000
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+      CHOKIDAR_USEPOLLING: "true"
     ports:
       - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+    volumes:
+      - ../../apps/frontend:/workspace/apps/frontend
+      - frontend-node-modules:/workspace/apps/frontend/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_started
+    networks:
+      - app-internal
 
   backend:
     build:
       context: ../../apps/backend
       dockerfile: Dockerfile
-    command: npm run start:dev
+    command: pnpm start:dev
+    environment:
+      <<: *backend-env
+      PORT: 4000
     ports:
       - "4000:4000"
-    environment:
-      - MYSQL_HOST=mysql
-      - MYSQL_PORT=3306
-      - MYSQL_USER=app_user
-      - MYSQL_PASSWORD=app_password
-      - MYSQL_DB=app_db
-      - MONGO_URI=mongodb://mongo:27017/app_db
+    volumes:
+      - ../../apps/backend:/workspace/apps/backend
+      - backend-node-modules:/workspace/apps/backend/node_modules
     depends_on:
-      - mysql
-      - mongo
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - app-internal
 
   mysql:
     image: mysql:8.0
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      - MYSQL_ROOT_PASSWORD=local_root_password
-      - MYSQL_DATABASE=app_db
-      - MYSQL_USER=app_user
-      - MYSQL_PASSWORD=app_password
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: attendance
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
     ports:
       - "3306:3306"
     volumes:
+      - mysql-data:/var/lib/mysql
       - ../mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -proot_password || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - app-internal
 
   mongo:
     image: mongo:6.0
     restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: attendance
     ports:
       - "27017:27017"
     volumes:
+      - mongo-data:/data/db
       - ../mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - app-internal
+
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    ports:
+      - "6379:6379"
+    networks:
+      - app-internal
+
+volumes:
+  frontend-node-modules:
+  backend-node-modules:
+  mysql-data:
+  mongo-data:
+
+networks:
+  app-internal:

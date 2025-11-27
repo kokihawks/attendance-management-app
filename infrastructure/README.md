@@ -2,7 +2,7 @@
 
 インフラ関連の設定ファイルやスクリプトを管理します。
 
-- `docker/`: Docker 関連の設定や orchestration ファイル
+- `docker/`: Docker Compose でのローカル開発環境
 - `mysql/`: MySQL 用の初期化スクリプトや設定ファイル
 - `mongodb/`: MongoDB 用の初期化スクリプトや設定ファイル
 

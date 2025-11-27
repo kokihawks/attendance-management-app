@@ -39,7 +39,7 @@
 ### 1.2 技術スタック
 - **フロントエンド**: Next.js 14+ (App Router), TypeScript, Tailwind CSS
 - **バックエンド**: Nest.js, TypeScript
-- **データベース**: MySQL 8.0, MongoDB 6.0
+- **データベース**: MySQL 8.0
 - **キャッシュ/キュー**: Redis
 - **認証**: Google OAuth2 (ユーザー認証)、Microsoft Graph API (Outlook Calendar連携用)
 - **コンテナ**: Docker, Docker Compose
